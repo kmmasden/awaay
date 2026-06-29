@@ -150,7 +150,7 @@ export function DuplicateReview({ rows, existingMembers, onBack, onConfirm }: Du
       )}
 
       <div className="space-y-6 mb-6 max-h-[480px] overflow-y-auto pr-1">
-        {rowsWithDiffs.map(({ row, rowsIndex, diffs, existing }, cardIdx) => {
+        {rowsWithDiffs.map(({ row, rowsIndex, diffs, existing }) => {
           const rowDecisions = decisions[rowsIndex] ?? {}
           const allExisting = diffs.every(d => (rowDecisions[d.key as string] ?? 'existing') === 'existing')
           const allIncoming = diffs.every(d => (rowDecisions[d.key as string] ?? 'existing') === 'incoming')

@@ -6,9 +6,10 @@ interface StatusBadgeProps {
 }
 
 const STATUS_STYLES: Record<MemberStatus, string> = {
-  'Active': 'bg-green-50 text-green-800 border border-green-300',
-  'Outstanding Dues': 'bg-amber-50 text-amber-800 border border-amber-300',
+  'Current': 'bg-green-50 text-green-800 border border-green-300',
+  'Delinquent': 'bg-amber-50 text-amber-800 border border-amber-300',
   'Former': 'bg-gray-100 text-gray-700 border border-gray-300',
+  'Missing dues info': 'bg-blue-50 text-blue-700 border border-blue-300',
 }
 
 export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {

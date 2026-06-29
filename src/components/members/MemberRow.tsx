@@ -4,7 +4,7 @@ import type { Member } from '../../types'
 import { StatusBadge } from '../shared/StatusBadge'
 import { DuesLabel } from '../shared/DuesLabel'
 import { ConfirmDialog } from '../shared/ConfirmDialog'
-import { formatDateShort } from '../../utils/dates'
+import { formatDateShort, computeMemberStatus } from '../../utils/dates'
 
 interface MemberRowProps {
   member: Member
@@ -85,7 +85,7 @@ export function MemberRow({
           </a>
         </td>
         <td className="px-4 py-4">
-          <StatusBadge status={member.memberStatus} />
+          <StatusBadge status={computeMemberStatus(member)} />
         </td>
         <td className="px-4 py-4 text-[16px]">
           <div>

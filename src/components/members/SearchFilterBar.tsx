@@ -11,7 +11,7 @@ interface SearchFilterBarProps {
   states: string[]
 }
 
-const STATUS_OPTIONS: (MemberStatus | 'All')[] = ['All', 'Active', 'Outstanding Dues', 'Former']
+const STATUS_OPTIONS: (MemberStatus | 'All')[] = ['All', 'Current', 'Delinquent', 'Missing dues info', 'Former']
 const DUES_OPTIONS = ['All', 'Current', 'Due Soon', 'Overdue'] as const
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'lastName', label: 'Last Name' },

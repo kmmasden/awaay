@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Save, X } from 'lucide-react'
+import { Save, X, ArrowLeft } from 'lucide-react'
 import type { Member, MemberStatus } from '../../types'
 import { FormField, inputClass, selectClass } from './FormField'
 import { ConfirmDialog } from '../shared/ConfirmDialog'
@@ -53,7 +53,7 @@ export function MemberForm({ member, onSave, onCancel }: MemberFormProps) {
     firstName: member?.firstName ?? '',
     lastName: member?.lastName ?? '',
     birthdate: member?.birthdate ?? '',
-    memberStatus: member?.memberStatus ?? 'Active',
+    memberStatus: member?.memberStatus ?? 'Current',
     dateJoined: member?.dateJoined ?? today,
     address: member?.address ?? '',
     city: member?.city ?? '',
@@ -128,6 +128,15 @@ export function MemberForm({ member, onSave, onCancel }: MemberFormProps) {
     <>
       <form onSubmit={handleSubmit} noValidate aria-label={isEdit ? 'Edit member' : 'Add new member'}>
         <div className="mb-5">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="flex items-center gap-1.5 text-[#1e3a5f] text-[15px] font-medium hover:underline mb-3"
+            aria-label="Back to members"
+          >
+            <ArrowLeft size={17} aria-hidden="true" />
+            Back to Members
+          </button>
           <h2 className="text-3xl font-bold text-gray-900">
             {isEdit ? `Edit: ${member.firstName} ${member.lastName}` : 'Add New Member'}
           </h2>
@@ -183,8 +192,7 @@ export function MemberForm({ member, onSave, onCancel }: MemberFormProps) {
                 onChange={e => set('memberStatus', e.target.value as MemberStatus)}
                 className={selectClass}
               >
-                <option value="Active">Active</option>
-                <option value="Outstanding Dues">Outstanding Dues</option>
+                <option value="Current">Current</option>
                 <option value="Former">Former</option>
               </select>
             </FormField>

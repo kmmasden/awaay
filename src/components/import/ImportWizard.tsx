@@ -76,6 +76,10 @@ export function ImportWizard({ existingMembers, onClose, onImport }: ImportWizar
     setStep('preview')
   }
 
+  const handleOverrideRow = (index: number) => {
+    setRows(prev => prev.map((r, i) => i === index ? { ...r, action: 'add', errors: [] } : r))
+  }
+
   const handleImport = () => {
     const result = onImport(rows, existingMembers)
     setSummary(result)
@@ -183,6 +187,7 @@ export function ImportWizard({ existingMembers, onClose, onImport }: ImportWizar
             rows={rows}
             onBack={() => setStep(dupCount > 0 ? 'duplicates' : 'map')}
             onConfirm={() => setStep('confirm')}
+            onOverrideRow={handleOverrideRow}
           />
         )}
 

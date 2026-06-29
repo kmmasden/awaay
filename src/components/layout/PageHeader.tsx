@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
-import { UserPlus, Upload, Download, ChevronDown } from 'lucide-react'
+import { UserPlus, Upload, Download, ChevronDown, Trash2 } from 'lucide-react'
 import type { Member } from '../../types'
 import { exportToExcel } from '../../utils/export'
+import { ConfirmDialog } from '../shared/ConfirmDialog'
 
 interface PageHeaderProps {
   onAddMember: () => void
   onImport: () => void
+  onDeleteAll: () => void
   allMembers: Member[]
   filteredMembers: Member[]
   selectedMembers: Member[]
@@ -14,11 +16,13 @@ interface PageHeaderProps {
 export function PageHeader({
   onAddMember,
   onImport,
+  onDeleteAll,
   allMembers,
   filteredMembers,
   selectedMembers,
 }: PageHeaderProps) {
   const [exportOpen, setExportOpen] = useState(false)
+  const [showDeleteAll, setShowDeleteAll] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -112,8 +116,29 @@ export function PageHeader({
             <UserPlus size={18} aria-hidden="true" />
             Add New Member
           </button>
+
+          {/* Delete All */}
+          <button
+            onClick={() => setShowDeleteAll(true)}
+            disabled={allMembers.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 rounded border border-red-300 text-red-600 font-medium text-[16px] hover:bg-red-50 bg-white min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Delete all member records"
+          >
+            <Trash2 size={18} aria-hidden="true" />
+            Delete All Records
+          </button>
         </div>
       </div>
+
+      {showDeleteAll && (
+        <ConfirmDialog
+          title="Delete all records?"
+          message="This will permanently delete all member records. This action cannot be undone."
+          confirmLabel="Delete All Records"
+          onConfirm={() => { setShowDeleteAll(false); onDeleteAll() }}
+          onCancel={() => setShowDeleteAll(false)}
+        />
+      )}
     </div>
   )
 }

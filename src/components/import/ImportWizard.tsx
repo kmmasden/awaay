@@ -12,7 +12,7 @@ type Step = 'upload' | 'map' | 'preview' | 'duplicates' | 'confirm' | 'done'
 interface ImportWizardProps {
   existingMembers: Member[]
   onClose: () => void
-  onImport: (rows: ImportRow[], existingMembers: Member[]) => ImportSummary
+  onImport: (rows: ImportRow[], existingMembers: Member[]) => Promise<ImportSummary>
 }
 
 export interface ImportSummary {
@@ -80,10 +80,12 @@ export function ImportWizard({ existingMembers, onClose, onImport }: ImportWizar
     setRows(prev => prev.map((r, i) => i === index ? { ...r, action: 'add', errors: [] } : r))
   }
 
-  const handleImport = () => {
-    const result = onImport(rows, existingMembers)
+  const handleImport = async () => {
+    setLoading(true)
+    const result = await onImport(rows, existingMembers)
     setSummary(result)
     setStep('done')
+    setLoading(false)
   }
 
   const stepOrder: Step[] = ['upload', 'map', 'preview', 'duplicates', 'confirm', 'done']
@@ -216,10 +218,10 @@ export function ImportWizard({ existingMembers, onClose, onImport }: ImportWizar
               </button>
               <button
                 onClick={handleImport}
-                disabled={addCount + updateCount === 0}
+                disabled={addCount + updateCount === 0 || loading}
                 className="px-6 py-2.5 rounded bg-[#1e3a5f] text-white font-semibold text-[16px] hover:bg-[#162d4a] min-h-[44px] disabled:opacity-50"
               >
-                Import {addCount + updateCount} Member{addCount + updateCount !== 1 ? 's' : ''}
+                {loading ? 'Importing...' : `Import ${addCount + updateCount} Member${addCount + updateCount !== 1 ? 's' : ''}`}
               </button>
             </div>
           </div>

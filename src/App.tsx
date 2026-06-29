@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Sidebar } from './components/layout/Sidebar'
 import { PageHeader } from './components/layout/PageHeader'
 import { SummaryCards } from './components/members/SummaryCards'
@@ -9,9 +9,9 @@ import { MemberForm } from './components/forms/MemberForm'
 import { ImportWizard } from './components/import/ImportWizard'
 import type { ImportSummary } from './components/import/ImportWizard'
 import { ToastContainer } from './components/shared/Toast'
-import { MOCK_MEMBERS } from './mockData'
 import type { Member, FilterState, SortOption, AppView, ToastMessage, MemberStatus, ImportRow } from './types'
 import { getDuesStatus, addOneYear, todayISO, computeMemberStatus } from './utils/dates'
+import { supabase } from './lib/supabase'
 
 type NavItem = 'Members' | 'Dues' | 'Reminders' | 'Reports' | 'Settings'
 
@@ -25,23 +25,37 @@ const DEFAULT_FILTERS: FilterState = {
   sortDir: 'asc',
 }
 
-let nextId = 100
-
 function generateId() {
-  return String(nextId++)
+  return crypto.randomUUID()
 }
 
 function generateActivityId() {
-  return `act-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return crypto.randomUUID()
 }
 
 export default function App() {
-  const [members, setMembers] = useState<Member[]>(MOCK_MEMBERS)
+  const [members, setMembers] = useState<Member[]>([])
+  const [loading, setLoading] = useState(true)
   const [view, setView] = useState<AppView>({ type: 'members' })
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS)
   const [navItem, setNavItem] = useState<NavItem>('Members')
   const [showImport, setShowImport] = useState(false)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
+
+  const membersRef = useRef<Member[]>([])
+  useEffect(() => { membersRef.current = members }, [members])
+
+  useEffect(() => {
+    supabase
+      .from('members')
+      .select('*')
+      .order('lastName')
+      .then(({ data, error }) => {
+        if (error) console.error('Failed to load members:', error)
+        if (data) setMembers(data as Member[])
+        setLoading(false)
+      })
+  }, [])
 
   const cities = useMemo(() => [...new Set(members.map(m => m.city).filter(Boolean))].sort(), [members])
   const states = useMemo(() => [...new Set(members.map(m => m.state).filter(Boolean))].sort(), [members])
@@ -100,19 +114,27 @@ export default function App() {
     setToasts(t => t.filter(x => x.id !== id))
   }, [])
 
-  const updateMember = useCallback((id: string, changes: Partial<Member>, activityNote?: string) => {
-    setMembers(prev => prev.map(m => {
-      if (m.id !== id) return m
-      const activity = activityNote
-        ? [...m.activity, { id: generateActivityId(), date: todayISO(), description: activityNote }]
-        : m.activity
-      return { ...m, ...changes, activity, updatedAt: todayISO() }
-    }))
-  }, [])
+  const updateMember = useCallback(async (id: string, changes: Partial<Member>, activityNote?: string) => {
+    const m = membersRef.current.find(x => x.id === id)
+    if (!m) return
 
-  const handleSaveMember = useCallback((data: Partial<Member>) => {
+    const activity = activityNote
+      ? [...m.activity, { id: generateActivityId(), date: todayISO(), description: activityNote }]
+      : m.activity
+    const updated: Member = { ...m, ...changes, activity, updatedAt: todayISO() }
+
+    setMembers(prev => prev.map(x => x.id === id ? updated : x))
+
+    const { error } = await supabase.from('members').update(updated).eq('id', id)
+    if (error) {
+      addToast('error', 'Failed to save changes. Please try again.')
+      setMembers(prev => prev.map(x => x.id === id ? m : x))
+    }
+  }, [addToast])
+
+  const handleSaveMember = useCallback(async (data: Partial<Member>) => {
     if (view.type === 'edit-member') {
-      updateMember(view.memberId, data, 'Member information updated')
+      await updateMember(view.memberId, data, 'Member information updated')
       addToast('success', 'Member information saved.')
       setView({ type: 'member-detail', memberId: view.memberId })
     } else if (view.type === 'add-member') {
@@ -137,54 +159,70 @@ export default function App() {
         updatedAt: todayISO(),
       }
       setMembers(prev => [...prev, newMember])
+      const { error } = await supabase.from('members').insert(newMember)
+      if (error) {
+        addToast('error', 'Failed to add member. Please try again.')
+        setMembers(prev => prev.filter(m => m.id !== newMember.id))
+        return
+      }
       addToast('success', `${newMember.firstName} ${newMember.lastName} has been added as a new member.`)
       setView({ type: 'member-detail', memberId: newMember.id })
     }
   }, [view, updateMember, addToast])
 
-  const handleRecordPayment = useCallback((memberId: string) => {
+  const handleRecordPayment = useCallback(async (memberId: string) => {
     const today = todayISO()
     const renewal = addOneYear(today)
-    updateMember(memberId, {
+    await updateMember(memberId, {
       lastDuesPaidDate: today,
       duesRenewalDate: renewal,
     }, 'Dues payment recorded')
     addToast('success', 'Dues payment recorded.')
   }, [updateMember, addToast])
 
-  const handleSendReminder = useCallback((memberIds: string[]) => {
+  const handleSendReminder = useCallback(async (memberIds: string[]) => {
     const today = todayISO()
-    memberIds.forEach(id => {
+    await Promise.all(memberIds.map(id =>
       updateMember(id, { duesReminderSentDate: today }, 'Dues reminder sent')
-    })
+    ))
     addToast('success', memberIds.length === 1 ? 'Reminder marked as sent.' : `${memberIds.length} reminders marked as sent.`)
   }, [updateMember, addToast])
 
-  const handleMarkFormer = useCallback((memberId: string) => {
-    updateMember(memberId, { memberStatus: 'Former' }, 'Status changed to Former')
+  const handleMarkFormer = useCallback(async (memberId: string) => {
+    await updateMember(memberId, { memberStatus: 'Former' }, 'Status changed to Former')
     addToast('success', 'Member status changed to Former.')
   }, [updateMember, addToast])
 
-  const handleDeleteMembers = useCallback((ids: string[]) => {
+  const handleDeleteMembers = useCallback(async (ids: string[]) => {
+    const snapshot = membersRef.current
     setMembers(prev => prev.filter(m => !ids.includes(m.id)))
     if (view.type === 'member-detail' && ids.includes(view.memberId)) {
       setView({ type: 'members' })
     }
+    const { error } = await supabase.from('members').delete().in('id', ids)
+    if (error) {
+      addToast('error', 'Failed to delete member(s). Please try again.')
+      setMembers(snapshot)
+      return
+    }
     addToast('success', ids.length === 1 ? 'Member deleted.' : `${ids.length} members deleted.`)
   }, [view, addToast])
 
-  const handleChangeStatus = useCallback((ids: string[], status: MemberStatus) => {
-    ids.forEach(id => updateMember(id, { memberStatus: status }, `Status changed to ${status}`))
+  const handleChangeStatus = useCallback(async (ids: string[], status: MemberStatus) => {
+    await Promise.all(ids.map(id => updateMember(id, { memberStatus: status }, `Status changed to ${status}`)))
     addToast('success', `${ids.length} member${ids.length !== 1 ? 's' : ''} updated to "${status}".`)
   }, [updateMember, addToast])
 
-  const handleImport = useCallback((rows: ImportRow[]): ImportSummary => {
+  const handleImport = useCallback(async (rows: ImportRow[]): Promise<ImportSummary> => {
     let added = 0, updated = 0, skipped = 0
+
+    const toAdd: Member[] = []
+    const toUpdate: Array<{ id: string; mapped: Partial<Member> }> = []
 
     rows.forEach(row => {
       if (row.action === 'skip') { skipped++; return }
       if (row.action === 'add') {
-        const newMember: Member = {
+        toAdd.push({
           id: generateId(),
           firstName: row.mapped.firstName ?? '',
           lastName: row.mapped.lastName ?? '',
@@ -203,16 +241,28 @@ export default function App() {
           notes: row.mapped.notes ?? '',
           activity: [{ id: generateActivityId(), date: todayISO(), description: 'Member imported from spreadsheet' }],
           updatedAt: todayISO(),
-        }
-        setMembers(prev => [...prev, newMember])
+        })
         added++
       } else if (row.action === 'update' && row.duplicateOf) {
-        updateMember(row.duplicateOf, row.mapped as Partial<Member>, 'Member information updated via import')
+        toUpdate.push({ id: row.duplicateOf, mapped: row.mapped as Partial<Member> })
         updated++
       } else {
         skipped++
       }
     })
+
+    if (toAdd.length > 0) {
+      const { error } = await supabase.from('members').insert(toAdd)
+      if (error) {
+        addToast('error', 'Import failed. Please try again.')
+        return { added: 0, updated: 0, skipped: rows.length }
+      }
+      setMembers(prev => [...prev, ...toAdd])
+    }
+
+    for (const { id, mapped } of toUpdate) {
+      await updateMember(id, mapped, 'Member information updated via import')
+    }
 
     addToast('success', 'Spreadsheet imported successfully.')
     return { added, updated, skipped }
@@ -234,6 +284,14 @@ export default function App() {
   }, [])
 
   const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex-1 flex items-center justify-center py-24 text-gray-400 text-[18px]">
+          Loading members...
+        </div>
+      )
+    }
+
     if (view.type === 'member-detail') {
       const member = members.find(m => m.id === view.memberId)
       if (!member) {

@@ -1,6 +1,5 @@
-import { Users, UserCheck, AlertCircle, UserX, HelpCircle } from 'lucide-react'
+import { Users, UserCheck, AlertCircle, UserX } from 'lucide-react'
 import type { Member, MemberStatus } from '../../types'
-import { computeMemberStatus } from '../../utils/dates'
 
 interface SummaryCardsProps {
   members: Member[]
@@ -9,11 +8,10 @@ interface SummaryCardsProps {
 }
 
 export function SummaryCards({ members, activeFilter, onFilter }: SummaryCardsProps) {
-  const total = members.filter(m => computeMemberStatus(m) !== 'Former').length
-  const active = members.filter(m => computeMemberStatus(m) === 'Current').length
-  const outstanding = members.filter(m => computeMemberStatus(m) === 'Delinquent').length
-  const missingDues = members.filter(m => computeMemberStatus(m) === 'Missing dues info').length
-  const former = members.filter(m => computeMemberStatus(m) === 'Former').length
+  const total = members.length
+  const active = members.filter(m => m.memberStatus === 'Active').length
+  const outstanding = members.filter(m => m.memberStatus === 'Outstanding Dues').length
+  const former = members.filter(m => m.memberStatus === 'Former').length
 
   const cards = [
     {
@@ -25,27 +23,19 @@ export function SummaryCards({ members, activeFilter, onFilter }: SummaryCardsPr
       bg: 'bg-white',
     },
     {
-      label: 'Current Members',
+      label: 'Active Members',
       value: active,
       icon: <UserCheck size={24} className="text-green-600" />,
-      filter: 'Current' as const,
+      filter: 'Active' as const,
       activeColor: 'ring-2 ring-green-600',
       bg: 'bg-white',
     },
     {
-      label: 'Delinquent',
+      label: 'Outstanding Dues',
       value: outstanding,
       icon: <AlertCircle size={24} className="text-amber-600" />,
-      filter: 'Delinquent' as const,
+      filter: 'Outstanding Dues' as const,
       activeColor: 'ring-2 ring-amber-600',
-      bg: 'bg-white',
-    },
-    {
-      label: 'Missing Dues Info',
-      value: missingDues,
-      icon: <HelpCircle size={24} className="text-blue-500" />,
-      filter: 'Missing dues info' as const,
-      activeColor: 'ring-2 ring-blue-500',
       bg: 'bg-white',
     },
     {
@@ -59,7 +49,7 @@ export function SummaryCards({ members, activeFilter, onFilter }: SummaryCardsPr
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map(card => {
         const isActive = activeFilter === card.filter
         return (

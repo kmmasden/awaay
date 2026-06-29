@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { DollarSign, Bell } from 'lucide-react'
 import type { Member } from '../../types'
-import { formatDate, getDuesLabel, getDuesStatus, addOneYear, todayISO, computeMemberStatus } from '../../utils/dates'
+import { formatDate, getDuesLabel, getDuesStatus, addOneYear, todayISO } from '../../utils/dates'
 import { StatusBadge } from '../shared/StatusBadge'
 import { ConfirmDialog } from '../shared/ConfirmDialog'
 
@@ -38,7 +38,7 @@ export function DuesSection({ member, onRecordPayment, onSendReminder }: DuesSec
           </span>
         </Field>
         <Field label="Member Status">
-          <StatusBadge status={computeMemberStatus(member)} />
+          <StatusBadge status={member.memberStatus} />
         </Field>
         <Field label="Last Dues Paid Date">
           {formatDate(member.lastDuesPaidDate)}

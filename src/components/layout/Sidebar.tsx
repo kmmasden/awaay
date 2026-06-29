@@ -28,7 +28,7 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
             <Users size={20} className="text-[#1e3a5f]" />
           </div>
           <div>
-            <div className="text-white font-bold text-[16px] leading-tight">All Wool & A Yard Wide</div>
+            <div className="text-white font-bold text-[16px] leading-tight">Dad's Club</div>
             <div className="text-[#adc1dd] text-sm leading-tight">Members Portal</div>
           </div>
         </div>

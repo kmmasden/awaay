@@ -50,7 +50,7 @@ export function BulkActionBar({
             </button>
             {showStatusMenu && (
               <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[180px]">
-                {(['Current', 'Former'] as MemberStatus[]).map(s => (
+                {(['Active', 'Outstanding Dues', 'Former'] as MemberStatus[]).map(s => (
                   <button
                     key={s}
                     onClick={() => { onChangeStatus(selected.map(m => m.id), s); setShowStatusMenu(false) }}

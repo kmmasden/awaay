@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { Member, ImportRow } from '../types'
+import type { Member, ImportRow, MemberStatus } from '../types'
 import { addOneYear } from './dates'
 
 export const APP_FIELDS: { key: keyof Member | ''; label: string; required?: boolean }[] = [
@@ -16,6 +16,7 @@ export const APP_FIELDS: { key: keyof Member | ''; label: string; required?: boo
   { key: 'duesRenewalDate', label: 'Dues Renewal Date' },
   { key: 'duesReminderSentDate', label: 'Dues Reminder Sent Date' },
   { key: 'birthdate', label: 'Birthdate' },
+  { key: 'memberStatus', label: 'Member Status' },
   { key: 'notes', label: 'Member Notes' },
   { key: '', label: '(Skip this column)' },
 ]
@@ -30,7 +31,6 @@ const HEADER_ALIASES: Record<string, keyof Member> = {
   'address': 'address',
   'city': 'city',
   'state': 'state',
-  'st': 'state',
   'zip': 'zip',
   'zip code': 'zip',
   'zipcode': 'zip',
@@ -39,10 +39,8 @@ const HEADER_ALIASES: Record<string, keyof Member> = {
   'phone number': 'phone',
   'telephone': 'phone',
   'email': 'email',
-  'e-mail': 'email',
   'email address': 'email',
   'date joined': 'dateJoined',
-  'date_joined': 'dateJoined',
   'joined': 'dateJoined',
   'member since': 'dateJoined',
   'dues paid date': 'lastDuesPaidDate',
@@ -53,13 +51,13 @@ const HEADER_ALIASES: Record<string, keyof Member> = {
   'dues renewal': 'duesRenewalDate',
   'dues reminder sent date': 'duesReminderSentDate',
   'reminder sent': 'duesReminderSentDate',
-  'remember_sent_date_1': 'duesReminderSentDate',
   'birthdate': 'birthdate',
   'birth date': 'birthdate',
   'dob': 'birthdate',
   'date of birth': 'birthdate',
+  'member status': 'memberStatus',
+  'status': 'memberStatus',
   'member notes': 'notes',
-  'member_notes': 'notes',
   'notes': 'notes',
   'comments': 'notes',
 }
@@ -121,6 +119,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+function isValidStatus(status: string): status is MemberStatus {
+  return ['Active', 'Outstanding Dues', 'Former'].includes(status)
+}
+
 export function processRows(
   rawRows: Record<string, string>[],
   mapping: Record<string, keyof Member | ''>,
@@ -137,7 +139,15 @@ export function processRows(
       const val = raw[col]?.trim() ?? ''
       if (!val) continue
 
-      if (['dateJoined', 'lastDuesPaidDate', 'duesRenewalDate', 'duesReminderSentDate', 'birthdate'].includes(field)) {
+      if (field === 'memberStatus') {
+        const normalized = val.trim()
+        if (isValidStatus(normalized)) {
+          mapped.memberStatus = normalized
+        } else {
+          warnings.push(`"${val}" is not a valid Member Status. Valid values are: Active, Outstanding Dues, Former.`)
+          mapped.memberStatus = 'Active'
+        }
+      } else if (['dateJoined', 'lastDuesPaidDate', 'duesRenewalDate', 'duesReminderSentDate', 'birthdate'].includes(field)) {
         const parsed = parseDate(val)
         if (val && !parsed) {
           errors.push(`Could not read date "${val}" for ${field}`)
@@ -155,18 +165,16 @@ export function processRows(
     }
 
     // Required field checks
-    const allValuesEmpty = Object.values(raw).every(v => !v || v.trim() === '')
-    if (allValuesEmpty) {
-      errors.push('Empty row')
-    } else {
-      if (!mapped.firstName) errors.push('First Name is required')
-      if (!mapped.lastName) errors.push('Last Name is required')
-    }
+    if (!mapped.firstName) errors.push('First Name is required')
+    if (!mapped.lastName) errors.push('Last Name is required')
 
     // Auto-calculate renewal date
     if (mapped.lastDuesPaidDate && !mapped.duesRenewalDate) {
       mapped.duesRenewalDate = addOneYear(mapped.lastDuesPaidDate)
     }
+
+    // Default status
+    if (!mapped.memberStatus) mapped.memberStatus = 'Active'
 
     // Duplicate detection
     let duplicateOf: string | undefined

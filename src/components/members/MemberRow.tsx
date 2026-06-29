@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Eye, MoreVertical, Pencil, DollarSign, Bell, UserX, Trash2 } from 'lucide-react'
 import type { Member } from '../../types'
 import { StatusBadge } from '../shared/StatusBadge'
@@ -32,18 +33,31 @@ export function MemberRow({
   onDelete,
 }: MemberRowProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
   const [showDelete, setShowDelete] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        triggerRef.current && !triggerRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  const openMenu = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    }
+    setMenuOpen(v => !v)
+  }
 
   const fullName = `${member.firstName} ${member.lastName}`
   const rowBg = isSelected
@@ -106,9 +120,10 @@ export function MemberRow({
               View
             </button>
 
-            <div className="relative" ref={menuRef}>
+            <div className="relative">
               <button
-                onClick={() => setMenuOpen(v => !v)}
+                ref={triggerRef}
+                onClick={openMenu}
                 aria-haspopup="true"
                 aria-expanded={menuOpen}
                 aria-label={`More actions for ${fullName}`}
@@ -116,9 +131,11 @@ export function MemberRow({
               >
                 <MoreVertical size={18} aria-hidden="true" />
               </button>
-              {menuOpen && (
+              {menuOpen && createPortal(
                 <div
-                  className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]"
+                  ref={menuRef}
+                  style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+                  className="bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px]"
                   role="menu"
                   aria-label={`Actions for ${fullName}`}
                 >
@@ -133,7 +150,8 @@ export function MemberRow({
                     onClick={() => { setMenuOpen(false); setShowDelete(true) }}
                     danger
                   />
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           </div>

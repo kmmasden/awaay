@@ -208,6 +208,19 @@ export default function App() {
     addToast('success', ids.length === 1 ? 'Member deleted.' : `${ids.length} members deleted.`)
   }, [view, addToast])
 
+  const handleDeleteAll = useCallback(async () => {
+    const snapshot = membersRef.current
+    setMembers([])
+    const { error } = await supabase.from('members').delete().neq('id', '')
+    if (error) {
+      addToast('error', 'Failed to delete all records. Please try again.')
+      setMembers(snapshot)
+      return
+    }
+    setView({ type: 'members' })
+    addToast('success', 'All member records have been deleted.')
+  }, [addToast])
+
   const handleChangeStatus = useCallback(async (ids: string[], status: MemberStatus) => {
     await Promise.all(ids.map(id => updateMember(id, { memberStatus: status }, `Status changed to ${status}`)))
     addToast('success', `${ids.length} member${ids.length !== 1 ? 's' : ''} updated to "${status}".`)
@@ -403,6 +416,7 @@ export default function App() {
           <PageHeader
             onAddMember={() => setView({ type: 'add-member' })}
             onImport={() => setShowImport(true)}
+            onDeleteAll={handleDeleteAll}
             allMembers={members}
             filteredMembers={filteredMembers}
             selectedMembers={[]}

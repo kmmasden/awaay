@@ -11,7 +11,7 @@ import type { ImportSummary } from './components/import/ImportWizard'
 import { ToastContainer } from './components/shared/Toast'
 import { MOCK_MEMBERS } from './mockData'
 import type { Member, FilterState, SortOption, AppView, ToastMessage, MemberStatus, ImportRow } from './types'
-import { getDuesStatus, addOneYear, todayISO } from './utils/dates'
+import { getDuesStatus, addOneYear, todayISO, computeMemberStatus } from './utils/dates'
 
 type NavItem = 'Members' | 'Dues' | 'Reminders' | 'Reports' | 'Settings'
 
@@ -61,7 +61,9 @@ export default function App() {
     }
 
     if (filters.memberStatus !== 'All') {
-      result = result.filter(m => m.memberStatus === filters.memberStatus)
+      result = result.filter(m => computeMemberStatus(m) === filters.memberStatus)
+    } else {
+      result = result.filter(m => computeMemberStatus(m) !== 'Former')
     }
 
     if (filters.duesRenewal !== 'All') {
@@ -81,7 +83,7 @@ export default function App() {
       firstName: (a, b) => a.firstName.localeCompare(b.firstName),
       dateJoined: (a, b) => (a.dateJoined ?? '').localeCompare(b.dateJoined ?? ''),
       duesRenewalDate: (a, b) => (a.duesRenewalDate ?? '').localeCompare(b.duesRenewalDate ?? ''),
-      memberStatus: (a, b) => a.memberStatus.localeCompare(b.memberStatus),
+      memberStatus: (a, b) => computeMemberStatus(a).localeCompare(computeMemberStatus(b)),
       updatedAt: (a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''),
     }
 
@@ -119,7 +121,7 @@ export default function App() {
         firstName: data.firstName ?? '',
         lastName: data.lastName ?? '',
         birthdate: data.birthdate,
-        memberStatus: data.memberStatus ?? 'Active',
+        memberStatus: data.memberStatus ?? 'Current',
         dateJoined: data.dateJoined ?? todayISO(),
         address: data.address ?? '',
         city: data.city ?? '',
@@ -146,7 +148,6 @@ export default function App() {
     updateMember(memberId, {
       lastDuesPaidDate: today,
       duesRenewalDate: renewal,
-      memberStatus: 'Active',
     }, 'Dues payment recorded')
     addToast('success', 'Dues payment recorded.')
   }, [updateMember, addToast])
@@ -188,7 +189,7 @@ export default function App() {
           firstName: row.mapped.firstName ?? '',
           lastName: row.mapped.lastName ?? '',
           birthdate: row.mapped.birthdate,
-          memberStatus: row.mapped.memberStatus ?? 'Active',
+          memberStatus: 'Current',
           dateJoined: row.mapped.dateJoined ?? todayISO(),
           address: row.mapped.address ?? '',
           city: row.mapped.city ?? '',
@@ -287,7 +288,10 @@ export default function App() {
           filters={filters}
           onChange={updateFilters}
           onClear={clearFilters}
-          totalCount={members.length}
+          totalCount={filters.memberStatus === 'Former'
+            ? members.filter(m => m.memberStatus === 'Former').length
+            : members.filter(m => m.memberStatus !== 'Former').length
+          }
           filteredCount={filteredMembers.length}
           cities={cities}
           states={states}

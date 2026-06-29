@@ -34,9 +34,9 @@ export function PageHeader({
   const handleExport = (type: 'all' | 'filtered' | 'selected') => {
     setExportOpen(false)
     const map = {
-      all: { members: allMembers, name: 'dads-club-all-members.xlsx' },
-      filtered: { members: filteredMembers, name: 'dads-club-filtered-members.xlsx' },
-      selected: { members: selectedMembers, name: 'dads-club-selected-members.xlsx' },
+      all: { members: allMembers, name: 'awyw-all-members.xlsx' },
+      filtered: { members: filteredMembers, name: 'awyw-filtered-members.xlsx' },
+      selected: { members: selectedMembers, name: 'awyw-selected-members.xlsx' },
     }
     const { members, name } = map[type]
     if (members.length === 0) return
@@ -48,7 +48,7 @@ export function PageHeader({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Membership Management</h1>
-          <p className="text-gray-600 text-[17px]">View, update, and manage Dad's Club members.</p>
+          <p className="text-gray-600 text-[17px]">View, update, and manage All Wool & A Yard Wide members.</p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">

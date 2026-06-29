@@ -1,5 +1,5 @@
 import { differenceInDays, parseISO, format, addYears } from 'date-fns'
-import type { DuesStatus } from '../types'
+import type { DuesStatus, MemberStatus } from '../types'
 
 export function formatDate(iso?: string): string {
   if (!iso) return '—'
@@ -56,4 +56,16 @@ export function addOneYear(iso: string): string {
 
 export function todayISO(): string {
   return new Date().toISOString().split('T')[0]
+}
+
+export function computeMemberStatus(member: {
+  memberStatus: MemberStatus
+  lastDuesPaidDate?: string
+  duesRenewalDate?: string
+}): MemberStatus {
+  if (member.memberStatus === 'Former') return 'Former'
+  if (!member.lastDuesPaidDate && !member.duesRenewalDate) return 'Missing dues info'
+  const renewal = member.duesRenewalDate ?? addOneYear(member.lastDuesPaidDate!)
+  if (renewal < todayISO()) return 'Delinquent'
+  return 'Current'
 }

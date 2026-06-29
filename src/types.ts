@@ -1,4 +1,4 @@
-export type MemberStatus = 'Active' | 'Outstanding Dues' | 'Former'
+export type MemberStatus = 'Current' | 'Delinquent' | 'Former' | 'Missing dues info'
 
 export type DuesStatus = 'Current' | 'Due Soon' | 'Overdue' | 'Unknown'
 

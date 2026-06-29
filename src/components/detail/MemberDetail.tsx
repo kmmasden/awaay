@@ -1,6 +1,6 @@
 import { ArrowLeft, Pencil } from 'lucide-react'
 import type { Member } from '../../types'
-import { formatDate } from '../../utils/dates'
+import { formatDate, computeMemberStatus } from '../../utils/dates'
 import { StatusBadge } from '../shared/StatusBadge'
 import { DuesSection } from './DuesSection'
 import { ActivityHistory } from './ActivityHistory'
@@ -52,7 +52,7 @@ export function MemberDetail({
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-1">{fullName}</h2>
             <div className="flex items-center gap-3 flex-wrap">
-              <StatusBadge status={member.memberStatus} />
+              <StatusBadge status={computeMemberStatus(member)} />
               <span className="text-[16px] text-gray-500">Member since {formatDate(member.dateJoined)}</span>
             </div>
           </div>
